@@ -4,8 +4,14 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+} from '@tanstack/react-query'
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -44,15 +50,37 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+export function useAppState(onChange: (status: AppStateStatus) => void) {
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', onChange)
+    return () => {
+      subscription.remove()
+    }
+  }, [onChange])
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 2 } },
+})
+
+function onAppStateChange(status: AppStateStatus) {
+  if (Platform.OS !== "web") {
+    focusManager.setFocused(status === "active")
+  }
+}
+
 function RootLayoutNav() {
+  useAppState(onAppStateChange)
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
