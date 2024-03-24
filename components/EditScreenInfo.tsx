@@ -39,7 +39,7 @@ type PokemonPreview = {
         front_default: string
       }
     }
-  }[],
+  },
   types: {
     slot: number
     type: {
@@ -69,7 +69,7 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
     },
   })
 
-  if (isLoading || !data || error) {
+  if (isLoading) {
     return (
       <View className='w-full h-40 py-1 flex flex-col items-center justify-center my-[6px] px-4'>
         <Text className='text-zinc-200 text-center capitalize text-2xl'>Loading {pokemonName}...</Text>
@@ -77,10 +77,14 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
     )
   }
 
+  if (data instanceof Error || !data) {
+    return null
+  }
+
   return (
     <View className='w-full flex flex-row gap-4 items-center py-1 px-4'>
-      <View className='bg-zinc-200  rounded-md border-[6px] border-red-500'>
-        <Image className="w-40 h-40 object-fill aspect-square" source={{ uri: data.sprites.other.showdown.front_default }} />
+      <View className='bg-zinc-200 rounded-md border-[6px] border-red-500 w-44 h-44 p-2'>
+        <Image style={{ width: "100%", height: "100%" }} resizeMode='contain' source={{ uri: data.sprites.other.showdown.front_default }} />
       </View>
       <SafeAreaView className=''>
         <FlatList
@@ -190,7 +194,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
         <Button title="up" onPress={scrollUp} />
         <Button title="down" onPress={scrollDown} />
       </View>
-      <SafeAreaView className='w-full h-full flex-1'>
+      <SafeAreaView className='w-full h-[90%] flex-1'>
         <FlatList className='my-2'
           ref={FlatListRef}
           data={data?.results}
