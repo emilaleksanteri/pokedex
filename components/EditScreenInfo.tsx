@@ -1,6 +1,7 @@
+import { AntDesign, Feather } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, ListRenderItemInfo, Text, View, Image, Button } from "react-native"
+import { FlatList, ListRenderItemInfo, Text, View, Image, Button, TouchableHighlight } from "react-native"
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type PokemonFetch = {
@@ -71,8 +72,8 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
 
   if (isLoading) {
     return (
-      <View className='w-full h-40 py-1 flex flex-col items-center justify-center my-[6px] px-4'>
-        <Text className='text-zinc-200 text-center capitalize text-2xl'>Loading {pokemonName}...</Text>
+      <View className='w-full py-24 flex flex-col items-center justify-center px-4 my-1'>
+        <Text className='text-zinc-200 text-center capitalize text-2xl p-2'>Loading {pokemonName}...</Text>
       </View>
     )
   }
@@ -82,7 +83,7 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
   }
 
   return (
-    <View className='w-full flex flex-row gap-4 items-center py-1 px-4'>
+    <View className='w-full flex flex-row gap-4 items-center px-4'>
       <View className='bg-zinc-200 rounded-md border-[6px] border-red-500 w-44 h-44 p-2'>
         <Image style={{ width: "100%", height: "100%" }} resizeMode='contain' source={{ uri: data.sprites.other.showdown.front_default }} />
       </View>
@@ -92,7 +93,7 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
           renderItem={(stat) => {
             return (
               <View className='flex flex-row items-center gap-2'>
-                <Text className='text-zinc-200 text-lg capitalize'>{stat.item.stat.name}</Text>
+                <Text className='text-zinc-200 text-base capitalize'>{stat.item.stat.name}</Text>
                 <Text className='text-zinc-200 text-lg font-bold'>{stat.item.base_stat}</Text>
               </View>
             )
@@ -145,7 +146,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
     setCursorPos(cursorPos + 1)
     FlatListRef.current?.scrollToIndex({
       animated: true,
-      index: currentChunkIdx
+      index: currentChunkIdx + 1
     })
 
     setSelectedMon(data?.results[currentChunkIdx + 1] ?? null)
@@ -181,7 +182,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
   }
 
   return (
-    <View className='w-full h-[700px] py-4'>
+    <View className='w-full h-[720px] py-4 pt-10'>
       <View className='flex flex-row items-center gap-2 px-4'>
         <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>{selectedMon?.name}</Text>
         <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>#{cursorPos + 1}</Text>
@@ -191,11 +192,27 @@ export default function EditScreenInfo({ path }: { path: string }) {
         : null
       }
       <View className='flex flex-row items-center w-full justify-between px-2'>
-        <Button title="up" onPress={scrollUp} />
-        <Button title="down" onPress={scrollDown} />
+        <TouchableHighlight>
+          <Feather name="plus-square" size={40} color="white" />
+        </TouchableHighlight>
+        <View className='flex flex-row gap-2'>
+          <TouchableHighlight onPress={scrollUp}>
+            <AntDesign name="caretup" size={40} color="white" />
+          </TouchableHighlight>
+          <TouchableHighlight onPress={scrollDown}>
+            <AntDesign name="caretdown" size={40} color="white" />
+          </TouchableHighlight>
+        </View>
       </View>
-      <SafeAreaView className='w-full h-[90%] flex-1'>
+      <SafeAreaView className='w-full h-[85%] flex-1'>
         <FlatList className='my-2'
+          onScrollToIndexFailed={(fail) => {
+            setCursorPos(offset !== 0 ? offset : 0)
+            FlatListRef.current?.scrollToIndex({
+              animated: true,
+              index: offset !== 0 ? offset : 0
+            })
+          }}
           ref={FlatListRef}
           data={data?.results}
           renderItem={(pokemon) => {
