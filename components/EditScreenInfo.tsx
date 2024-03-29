@@ -113,11 +113,11 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
   }
 
   return (
-    <View className='w-full flex flex-row gap-4 items-center px-4'>
-      <View className='bg-zinc-200 rounded-md border-[6px] border-red-500 w-44 h-44 p-2'>
+    <View className='w-full flex flex-row gap-4 items-center px-4 justify-center'>
+      <View className='bg-zinc-900 rounded-t-md rounded-bl-xl rounded-br-md border-[12px] border-zinc-200 w-44 h-44 p-2 drop-shadow-md'>
         <RotateImage pokemon={data} />
       </View>
-      <SafeAreaView className=''>
+      <SafeAreaView>
         <FlatList
           data={data.stats}
           renderItem={(stat) => {
@@ -138,17 +138,56 @@ export default function EditScreenInfo({ path }: { path: string }) {
   const chunkSize = 25
   const [cursorPos, setCursorPos] = useState(0)
   const [offset, setOffset] = useState(0)
+  const [prevOffset, setPrevOffset] = useState(0)
+  const [data, setData] = useState<PokemonFetch | null>(null)
+  const [nextData, setNextData] = useState<PokemonFetch | null>(null)
+
+  async function fetchNextData() {
+    if (nextData) {
+      const nextUrl = `https://pokeapi.co/api/v2/pokemon?limit=${chunkSize}&offset=${offset + chunkSize}`
+      const nextRes = await fetch(nextUrl)
+      const nextDataJson = await nextRes.json()
+      setNextData(nextDataJson)
+    } else {
+      const nextUrl = `https://pokeapi.co/api/v2/pokemon?limit=${chunkSize}&offset=${offset + chunkSize}`
+      const nextRes = await fetch(nextUrl)
+      const nextDataJson = await nextRes.json()
+      setNextData(nextDataJson)
+
+    }
+  }
+
+
   const [selectedMon, setSelectedMon] = useState<{ name: string, url: string } | null>(null)
   const FlatListRef = useRef<FlatList>(null)
 
-  const { isLoading, error, data, refetch } = useQuery<PokemonFetch, Error>({
+  const { isLoading } = useQuery<PokemonFetch, Error>({
     queryKey: ["pokemon-list", offset],
     queryFn: async () => {
-      const url = `https://pokeapi.co/api/v2/pokemon?limit=${chunkSize}&offset=${offset}`
-      const res = await fetch(url)
-      const data = await res.json()
+      if (prevOffset > offset) {
+        const url = `https://pokeapi.co/api/v2/pokemon?limit=${chunkSize}&offset=${offset}`
+        const res = await fetch(url)
+        const data = await res.json()
+        setData(data)
+        fetchNextData()
 
-      return data
+        return data
+      }
+
+      if (nextData) {
+        setData(nextData)
+        fetchNextData()
+        return nextData
+      } else {
+
+        const url = `https://pokeapi.co/api/v2/pokemon?limit=${chunkSize}&offset=${offset}`
+        const res = await fetch(url)
+        const data = await res.json()
+        setData(data)
+
+        fetchNextData()
+        return data
+      }
     },
   })
 
@@ -168,6 +207,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
     const currentChunkIdx = offset !== 0 ? cursorPos - offset : cursorPos
 
     if (currentChunkIdx === chunkSize - 1) {
+      setPrevOffset(offset)
       setOffset(offset + chunkSize)
       setCursorPos(cursorPos + 1)
       return
@@ -188,6 +228,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
     if (offset === 0 && currentChunkIdx < 0) return
     const isAtStartOfChunk = (offset - cursorPos) % chunkSize === 0
     if (isAtStartOfChunk) {
+      setPrevOffset(offset)
       setOffset(offset - chunkSize)
       setCursorPos(cursorPos - 1)
       return
@@ -227,18 +268,18 @@ export default function EditScreenInfo({ path }: { path: string }) {
       }
       <View className='flex flex-row items-center w-full justify-between px-2'>
         <TouchableHighlight>
-          <Feather name="plus-square" size={40} color="white" />
+          <Feather name="plus-square" size={50} color="white" />
         </TouchableHighlight>
         <View className='flex flex-row gap-2'>
           <TouchableHighlight onPress={scrollUp}>
-            <AntDesign name="caretup" size={40} color="white" />
+            <AntDesign name="caretup" size={50} color="white" />
           </TouchableHighlight>
           <TouchableHighlight onPress={scrollDown}>
-            <AntDesign name="caretdown" size={40} color="white" />
+            <AntDesign name="caretdown" size={50} color="white" />
           </TouchableHighlight>
         </View>
       </View>
-      <SafeAreaView className='w-full h-[85%] flex-1'>
+      <SafeAreaView className='w-full h-[78%] flex-1'>
         <FlatList className='my-2'
           onScrollToIndexFailed={() => {
             setCursorPos(offset !== 0 ? offset : 0)
