@@ -1,5 +1,6 @@
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, ListRenderItemInfo, Text, View, Image, TouchableHighlight, Pressable } from "react-native"
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,28 +10,6 @@ type PokemonFetch = {
   next: string | null
   previous: string | null
   results: { name: string, url: string }[]
-}
-
-function getSprite(urlForPokemon: string): string {
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getPokemonId(urlForPokemon)}.png`
-}
-
-function getPokemonId(urlForPokemon: string): string {
-  const split = urlForPokemon.split("/pokemon/")
-  return split[1].split("/")[0]
-}
-
-function ListItem({ pokemon }: { pokemon: ListRenderItemInfo<{ name: string, url: string, cursorPos: number, offset: number }> }) {
-  const currentChunkIdx = pokemon.item.offset !== 0 ? pokemon.item.cursorPos - pokemon.item.offset : pokemon.item.cursorPos
-  return (
-    <View className={`flex flex-row border-b border-zinc-700 w-full items-center gap-2 text-zinc-200 font-semibold ${pokemon.index === currentChunkIdx ? "bg-zinc-500" : ""}`}>
-      <Image className="w-20 h-20" source={{ uri: getSprite(pokemon.item.url) }} />
-      <View className='flex flex-row items-center justify-between w-[70%]'>
-        <Text className='text-zinc-200 text-lg capitalize'>{pokemon.item.name}</Text>
-        <Text className='text-zinc-200 text-lg font-bold'>#{getPokemonId(pokemon.item.url)}</Text>
-      </View>
-    </View>
-  )
 }
 
 type PokemonPreview = {
@@ -61,6 +40,15 @@ type PokemonPreview = {
   cries: {
     latest: string
   },
+}
+
+function getSprite(urlForPokemon: string): string {
+  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getPokemonId(urlForPokemon)}.png`
+}
+
+function getPokemonId(urlForPokemon: string): string {
+  const split = urlForPokemon.split("/pokemon/")
+  return split[1].split("/")[0]
 }
 
 function RotateImage({ pokemon }: { pokemon: PokemonPreview }) {
@@ -141,6 +129,8 @@ export default function EditScreenInfo({ path }: { path: string }) {
   const [prevOffset, setPrevOffset] = useState(0)
   const [data, setData] = useState<PokemonFetch | null>(null)
   const [nextData, setNextData] = useState<PokemonFetch | null>(null)
+  const [selectedMon, setSelectedMon] = useState<{ name: string, url: string } | null>(null)
+  const FlatListRef = useRef<FlatList>(null)
 
   async function fetchNextData() {
     if (nextData) {
@@ -156,10 +146,6 @@ export default function EditScreenInfo({ path }: { path: string }) {
 
     }
   }
-
-
-  const [selectedMon, setSelectedMon] = useState<{ name: string, url: string } | null>(null)
-  const FlatListRef = useRef<FlatList>(null)
 
   const { isLoading } = useQuery<PokemonFetch, Error>({
     queryKey: ["pokemon-list", offset],
@@ -267,7 +253,11 @@ export default function EditScreenInfo({ path }: { path: string }) {
         : null
       }
       <View className='flex flex-row items-center w-full justify-between px-2'>
-        <TouchableHighlight>
+        <TouchableHighlight onPress={() => {
+          if (!selectedMon) return
+          router.push(`/pokemon/${getPokemonId(selectedMon?.url)}`)
+        }
+        }>
           <Feather name="plus-square" size={50} color="white" />
         </TouchableHighlight>
         <View className='flex flex-row gap-2'>
@@ -279,8 +269,8 @@ export default function EditScreenInfo({ path }: { path: string }) {
           </TouchableHighlight>
         </View>
       </View>
-      <SafeAreaView className='w-full h-[78%] flex-1'>
-        <FlatList className='my-2'
+      <SafeAreaView className='w-full pl-2 flex items-center justify-center h-[75%] flex-1'>
+        <FlatList className='py-2 w-[95%] pl-2'
           onScrollToIndexFailed={() => {
             setCursorPos(offset !== 0 ? offset : 0)
             FlatListRef.current?.scrollToIndex({
@@ -288,6 +278,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
               index: offset !== 0 ? offset : 0
             })
           }}
+
           ref={FlatListRef}
           data={data?.results}
           renderItem={(pokemon) => {
@@ -298,4 +289,34 @@ export default function EditScreenInfo({ path }: { path: string }) {
       </SafeAreaView>
     </View>
   );
+}
+
+type ListItemProps = {
+  pokemon: ListRenderItemInfo<{ name: string, url: string, cursorPos: number, offset: number }>
+}
+
+function ListItem({ pokemon }: ListItemProps) {
+  const currentChunkIdx = pokemon.item.offset !== 0 ? pokemon.item.cursorPos - pokemon.item.offset : pokemon.item.cursorPos
+  return (
+    <View
+      className={
+        `flex flex-row w-full items-center pb-2 pr-2 gap-2 font-semibold ${pokemon.index === currentChunkIdx ? "bg-neutral-50" : "bg-[#CC0000]"}`
+      }>
+      <Image className="w-20 h-20" source={{ uri: getSprite(pokemon.item.url) }} />
+      <View className='flex flex-row items-center justify-between w-[70%]'>
+        <Text
+          className={
+            `${currentChunkIdx === pokemon.index ? "text-zinc-600 font-bold" : "text-zinc-200"} text-xl capitalize`
+          }>
+          {pokemon.item.name}
+        </Text>
+        <Text
+          className={
+            `${currentChunkIdx === pokemon.index ? "text-zinc-600 font-bold" : "text-zinc-200"} text-xl capitalize`
+          }>
+          #{getPokemonId(pokemon.item.url)}
+        </Text>
+      </View>
+    </View>
+  )
 }
