@@ -1,7 +1,7 @@
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, ListRenderItemInfo, Text, View, Image, Button, TouchableHighlight } from "react-native"
+import { FlatList, ListRenderItemInfo, Text, View, Image, TouchableHighlight, Pressable } from "react-native"
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type PokemonFetch = {
@@ -34,10 +34,12 @@ function ListItem({ pokemon }: { pokemon: ListRenderItemInfo<{ name: string, url
 }
 
 type PokemonPreview = {
+  id: number,
   sprites: {
     other: {
       showdown: {
         front_default: string
+        back_default: string
       }
     }
   },
@@ -56,10 +58,38 @@ type PokemonPreview = {
       url: string
     }
   }[],
+  cries: {
+    latest: string
+  },
+}
+
+function RotateImage({ pokemon }: { pokemon: PokemonPreview }) {
+  const [img, setImg] = useState(pokemon.sprites.other.showdown.front_default)
+
+  useEffect(() => {
+    setImg(pokemon.sprites.other.showdown.front_default)
+  }, [pokemon])
+
+  const handleRoate = () => {
+    if (img === pokemon.sprites.other.showdown.front_default) {
+      setImg(pokemon.sprites.other.showdown.back_default)
+    } else {
+      setImg(pokemon.sprites.other.showdown.front_default)
+    }
+  }
+  return (
+    <Pressable onPress={handleRoate}>
+      <Image
+        style={{ width: "100%", height: "100%" }}
+        resizeMode='contain'
+        source={{ uri: img }}
+      />
+    </Pressable>
+  )
 }
 
 function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemonName: string }) {
-  const { isLoading, error, data, refetch } = useQuery<PokemonPreview | Error>({
+  const { isLoading, data } = useQuery<PokemonPreview | Error>({
     queryKey: ["pokemon-preview", pokemonId],
     queryFn: async () => {
       const url = `https://pokeapi.co/api/v2/pokemon/${pokemonId}/`
@@ -85,7 +115,7 @@ function PokemonPreview({ pokemonId, pokemonName }: { pokemonId: string, pokemon
   return (
     <View className='w-full flex flex-row gap-4 items-center px-4'>
       <View className='bg-zinc-200 rounded-md border-[6px] border-red-500 w-44 h-44 p-2'>
-        <Image style={{ width: "100%", height: "100%" }} resizeMode='contain' source={{ uri: data.sprites.other.showdown.front_default }} />
+        <RotateImage pokemon={data} />
       </View>
       <SafeAreaView className=''>
         <FlatList
@@ -184,8 +214,12 @@ export default function EditScreenInfo({ path }: { path: string }) {
   return (
     <View className='w-full h-[720px] py-4 pt-10'>
       <View className='flex flex-row items-center gap-2 px-4'>
-        <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>{selectedMon?.name}</Text>
-        <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>#{cursorPos + 1}</Text>
+        <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>
+          {selectedMon?.name}
+        </Text>
+        <Text className='text-zinc-200 text-2xl font-extrabold tracking-wide capitalize'>
+          #{cursorPos + 1}
+        </Text>
       </View>
       {selectedMon
         ? <PokemonPreview pokemonId={getPokemonId(selectedMon?.url)} pokemonName={selectedMon?.name} />
@@ -206,7 +240,7 @@ export default function EditScreenInfo({ path }: { path: string }) {
       </View>
       <SafeAreaView className='w-full h-[85%] flex-1'>
         <FlatList className='my-2'
-          onScrollToIndexFailed={(fail) => {
+          onScrollToIndexFailed={() => {
             setCursorPos(offset !== 0 ? offset : 0)
             FlatListRef.current?.scrollToIndex({
               animated: true,
