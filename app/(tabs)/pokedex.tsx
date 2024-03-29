@@ -1,12 +1,11 @@
 import { StyleSheet, StatusBar } from 'react-native';
-
-import EditScreenInfo from '@/components/EditScreenInfo';
 import { View } from '@/components/Themed';
+import { PokemonList } from '@/components/PokemonList';
 
 export default function TabOneScreen() {
   return (
     <View style={styles.container}>
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <PokemonList />
     </View>
   );
 }
